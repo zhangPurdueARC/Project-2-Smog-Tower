@@ -1,31 +1,39 @@
 import math
 
 # smog calculations
+# approximate smog particles as sphere
 
-def diameterToRadius(diameter):
-    return diameter / 2
+class Particle: 
+    diameter = 0
+    radius = 0
+    volume = 0
+    velocity = [0, 0, 0]
+    position = [0, 0, 0]
+    crossSectionalArea = 0
+    density = 1950
+    mass = 0
 
-def sphereVolume(radius):
-    return 4 / 3 * math.pi * (radius ** 3)
+    def __init__(self, diameter):
+        self.diameter = diameter
+        self.radius = diameter / 2
+        self.volume = 4 / 3 * math.pi * (self.radius ** 3)
+        self.crossSectionalArea = math.pi * (self.radius ** 2)
+        self.mass = self.volume * self.density
 
 # vector fields
 
 def gravityAccel():
-    return 9.8
+    return -9.81
 
-def hydroStaticPressureAccel():
-    pass # return to work on
+def hydroStaticPressureAccel(particle): # needs mass
+    atmoPressure = 1.013 * (10 ** 5) - 1.28 * 9.81 * particle.position[2] 
+    return atmoPressure * particle.crossSectionalArea / particle.mass
 
-# approximate smog particles as sphere
+def buoyantAccel(particle):
+    1.28 * 9.81
+
 # 10 micrometers diameter variant
-
-diameter10um = 10 * (10 ** -6)
-radius10um = diameterToRadius(diameter10um)
-volume10um = sphereVolume(radius10um)
-
+particle10um = Particle(10 * (10 ** -6))
 # 2.5 micrometers diameter variant
-
-diameter5HalvesUm = 2.5 * (10 ** -6)
-radius5HalvesUm = diameterToRadius(diameter5HalvesUm)
-volume5HalvesUm = sphereVolume(radius10um)
+particle5HalvesUm = Particle(2.5 * (10 ** -6))
 
