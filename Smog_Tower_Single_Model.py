@@ -32,6 +32,8 @@ def hydroStaticPressureAccel(particle): # needs mass
 def buoyantAccel(particle):
     return [0, 0, 1.28 * 9.81 * particle.volume / particle.mass]
 
+
+
 # 10 micrometers diameter variant
 particle10um = Particle(10 * (10 ** -6))
 # 2.5 micrometers diameter variant
