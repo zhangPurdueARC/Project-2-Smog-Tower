@@ -27,10 +27,10 @@ def gravityAccel():
 
 def hydroStaticPressureAccel(particle): # needs mass
     atmoPressure = 1.013 * (10 ** 5) - 1.28 * 9.81 * particle.position[2] 
-    return atmoPressure * particle.crossSectionalArea / particle.mass
+    return -1 * atmoPressure * particle.crossSectionalArea / particle.mass
 
 def buoyantAccel(particle):
-    1.28 * 9.81
+    return 1.28 * 9.81 * particle.volume / particle.mass
 
 # 10 micrometers diameter variant
 particle10um = Particle(10 * (10 ** -6))
