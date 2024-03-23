@@ -1,4 +1,5 @@
 import math
+import threading
 import random
 # smog calculations
 # approximate smog particles as sphere
@@ -24,7 +25,7 @@ class Particle: # 1 centimeter cube with particle info
         self.numParticles = massDensity / self.mass
         self.position = position
 
-    def electricField(self, particle): # approx as point
+    def electricField(self, particle): # approx as point, flawed - need to switch to plate
         r = math.sqrt(particle.position[0] ** 2 + particle.position[1] ** 2 + particle.position[2] ** 2)
         unitVec = particle.position / r
         eMag = 8.98 * 10 ** 9 * self.numParticles * self.charge / (r ** 2)
@@ -34,7 +35,7 @@ class Tower: # approximate the tower as a line charge
     chargeDensity = 0
     totalCharge = 0
     height = 0
-    captureParticles = 0
+    captureParticles = [[10 * (10 ** -6), 0], [2.5 * (10 ** -6), 0]]
     
     def __init__(self, chargeDensity, height):
         self.chargeDensity = chargeDensity
@@ -47,9 +48,13 @@ class Tower: # approximate the tower as a line charge
         eMag = 8.98 * 10 ** 9 * self.chargeDensity * particle.position / z * (particle.position[2]/math.sqrt(z ** 2 + particle.position[2] ** 2) + (self.height - particle.position[2])/math.sqrt(z ** 2 + (self.height - particle.position[2] ** 2)))
         return eMag * unitVec
     
-    def changeCharge(self, particle):
+    def capture(self, particle):
         self.totalCharge += particle.charge * particle.numParticles * 2 * math.pi
         self.chargeDensity = self.totalCharge / self.height
+        for i in range(0, 2, 1):
+            if (self.captureParticles[i][0] == particle.diameter):
+                self.captureParticles[i][1] += particle.numParticles
+                break
 
 # vector fields
 def gravityAccel():
@@ -74,21 +79,28 @@ def windAccel(particle, windVelocity): # worry about this later
 """
 
 cubes = []
+windVelocity = [0, 0, 0]
 
-for x in range(0, 301, 1): # 3 meters radius, 7 meters tall area
-    for z in range(0, 701, 1):
+for x in range(1, 301, 1): # 3 meters radius, 7 meters tall area
+    for z in range(1, 701, 1):
         position = [x / 100, 0, z /100]
         # 10 micrometers diameter variant
         cubes.append(Particle(10 * (10 ** -6), 4.89 * 10 ** -8 * (1 / 100) ** 3, position))
         # 2.5 micrometers diameter variant
         cubes.append(Particle(2.5 * (10 ** -6), 2.05 * 10 ** -8 * (1 / 100) ** 3, position))
+    print(x)
 
 Tower(1.9 * 10 ** -7, 7)
 
-time = 3600 # 3600 seconds
+maxTime = 3600 # 3600 seconds
 timeStep = 0.01 
-
-
+currentTime = 0
+while (currentTime <= maxTime):
+    print(currentTime)
+    threads = []
+    for analysisCube in cubes:
+        pass
+    currentTime += timeStep
 
 """
 randZ = -1
