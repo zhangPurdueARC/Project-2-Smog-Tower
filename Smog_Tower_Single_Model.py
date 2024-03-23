@@ -3,7 +3,7 @@ import random
 # smog calculations
 # approximate smog particles as sphere
 
-class Particle: # individual particle
+class Particle: # 1 centimeter cube with particle info
     diameter = 0
     radius = 0
     volume = 0
@@ -12,47 +12,44 @@ class Particle: # individual particle
     crossSectionalArea = 0
     particleDensity = 1950
     mass = 0
-    charge =  1.602 * (10 ** -19)
+    charge = -1.602 * (10 ** -19)
+    numParticles = 0
 
-    def __init__(self, diameter):
+    def __init__(self, diameter, massDensity, position):
         self.diameter = diameter
         self.radius = diameter / 2
         self.volume = 4 / 3 * math.pi * (self.radius ** 3)
         self.crossSectionalArea = math.pi * (self.radius ** 2)
         self.mass = self.volume * self.particleDensity
+        self.numParticles = massDensity / self.mass
+        self.position = position
 
-class ParticleCube: # 1cm by 1cm by 1cm cube, presume all particles are at center
-    particle10um = 0
-    particle5HalvesUm = 0
-    particle10umDensity = 4.89 * 10 ** -8 * (1 / 100) ** 3
-    particle5HalvesUmDensity = 2.05 * 10 ** -8 * (1 / 100) ** 3
-    numParticles10um = 0
-    numParticles5HalvesUm = 0
-    charge = 0
-
-    def __init__(self, particle10um, particle5HalvesUm):
-        self.particle10um = particle10um
-        self.particle5HalvesUm = particle5HalvesUm
-        self.numParticles10um = self.particle10umDensity / particle10um.mass
-        self.numParticles5HalvesUm = self.particle5HalvesUmDensity / particle5HalvesUm.mass
-        self.charge = (self.numParticles10um + self.numParticles5HalvesUm) * particle10um.charge
-
-    def electricField(self):
-        pass
+    def electricField(self, particle): # approx as point
+        r = math.sqrt(particle.position[0] ** 2 + particle.position[1] ** 2 + particle.position[2] ** 2)
+        unitVec = particle.position / r
+        eMag = 8.98 * 10 ** 9 * self.numParticles * self.charge / (r ** 2)
+        return eMag * unitVec
 
 class Tower: # approximate the tower as a line charge
     chargeDensity = 0
+    totalCharge = 0
     height = 0
+    captureParticles = 0
     
     def __init__(self, chargeDensity, height):
         self.chargeDensity = chargeDensity
         self.height = height
+        self.totalCharge = chargeDensity * height
 
     def electricField(self, particle):
         z = math.sqrt(particle.position[0] ** 2 + particle.position[1] ** 2)
         unitVec = (particle.position) / z
         eMag = 8.98 * 10 ** 9 * self.chargeDensity * particle.position / z * (particle.position[2]/math.sqrt(z ** 2 + particle.position[2] ** 2) + (self.height - particle.position[2])/math.sqrt(z ** 2 + (self.height - particle.position[2] ** 2)))
         return eMag * unitVec
+    
+    def changeCharge(self, particle):
+        self.totalCharge += particle.charge * particle.numParticles * 2 * math.pi
+        self.chargeDensity = self.totalCharge / self.height
 
 # vector fields
 def gravityAccel():
@@ -76,21 +73,22 @@ def windAccel(particle, windVelocity): # worry about this later
     return
 """
 
-# 10 micrometers diameter variant
-particle10um = Particle(10 * (10 ** -6))
-# 2.5 micrometers diameter variant
-particle5HalvesUm = Particle(2.5 * (10 ** -6))
-
 cubes = []
 
-for x in range(0, 3.01, 0.01):
-    for y in range(0, 3.01, 0.01):
-        for z in range(0, 7.01, 0.01):
-            cubes.append(ParticleCube())
-
-# 3 meters radius, 7 meters tall
+for x in range(0, 301, 1): # 3 meters radius, 7 meters tall area
+    for z in range(0, 701, 1):
+        position = [x / 100, 0, z /100]
+        # 10 micrometers diameter variant
+        cubes.append(Particle(10 * (10 ** -6), 4.89 * 10 ** -8 * (1 / 100) ** 3, position))
+        # 2.5 micrometers diameter variant
+        cubes.append(Particle(2.5 * (10 ** -6), 2.05 * 10 ** -8 * (1 / 100) ** 3, position))
 
 Tower(1.9 * 10 ** -7, 7)
+
+time = 3600 # 3600 seconds
+timeStep = 0.01 
+
+
 
 """
 randZ = -1
