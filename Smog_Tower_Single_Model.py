@@ -1,6 +1,5 @@
 import math
-import threading
-import random
+import numpy as np
 # smog calculations
 # approximate smog particles as sphere
 
@@ -8,8 +7,8 @@ class Particle: # 1 centimeter cube with particle info
     diameter = 0
     radius = 0
     volume = 0
-    velocity = [0, 0, 0]
-    position = [0, 0, 0]
+    velocity = np.array([0, 0, 0])
+    position = np.array([0, 0, 0])
     crossSectionalArea = 0
     particleDensity = 1950
     mass = 0
@@ -25,17 +24,12 @@ class Particle: # 1 centimeter cube with particle info
         self.numParticles = massDensity / self.mass
         self.position = position
 
-    def electricField(self, particle): # approx as point, flawed - need to switch to plate
-        r = math.sqrt(particle.position[0] ** 2 + particle.position[1] ** 2 + particle.position[2] ** 2)
-        unitVec = particle.position / r
-        eMag = 8.98 * 10 ** 9 * self.numParticles * self.charge / (r ** 2)
-        return eMag * unitVec
-
 class Tower: # approximate the tower as a line charge
     chargeDensity = 0
     totalCharge = 0
     height = 0
     captureParticles = [[10 * (10 ** -6), 0], [2.5 * (10 ** -6), 0]]
+    kgRemoved = [0, 0]
     
     def __init__(self, chargeDensity, height):
         self.chargeDensity = chargeDensity
@@ -44,8 +38,8 @@ class Tower: # approximate the tower as a line charge
 
     def electricField(self, particle):
         z = math.sqrt(particle.position[0] ** 2 + particle.position[1] ** 2)
-        unitVec = (particle.position) / z
-        eMag = 8.98 * 10 ** 9 * self.chargeDensity * particle.position / z * (particle.position[2]/math.sqrt(z ** 2 + particle.position[2] ** 2) + (self.height - particle.position[2])/math.sqrt(z ** 2 + (self.height - particle.position[2] ** 2)))
+        unitVec = np.array(particle.position) / z
+        eMag = 8.98 * 10 ** 9 * self.chargeDensity / z * (particle.position[2]/math.sqrt(z ** 2 + particle.position[2] ** 2) + (self.height - particle.position[2])/math.sqrt(z ** 2 + (self.height - particle.position[2]) ** 2))
         return eMag * unitVec
     
     def capture(self, particle):
@@ -54,24 +48,28 @@ class Tower: # approximate the tower as a line charge
         for i in range(0, 2, 1):
             if (self.captureParticles[i][0] == particle.diameter):
                 self.captureParticles[i][1] += particle.numParticles
+                self.kgRemoved[i] += particle.numParticles * particle.mass
                 break
 
 # vector fields
 def gravityAccel():
-    return [0, 0, -9.81]
+    return np.array([0, 0, -9.81])
 
 def hydroStaticPressureAccel(particle): # needs mass
     atmoPressure = 1.013 * (10 ** 5) - 1.28 * 9.81 * particle.position[2] 
-    return [0, 0, -1 * atmoPressure * particle.crossSectionalArea / particle.mass]
+    return np.array([0, 0, -1 * atmoPressure * particle.crossSectionalArea / particle.mass])
 
 def buoyantAccel(particle):
-    return [0, 0, 1.28 * 9.81 * particle.volume / particle.mass]
+    return np.array([0, 0, 1.28 * 9.81 * particle.volume / particle.mass])
 
 def dragAccel(particle, windVelocity):
-    return -6 * math.pi * (1.895 * (10 ** -5)) * particle.diameter * (particle.velocity + windVelocity) / particle.mass
+    return -6 * math.pi * (1.895 * (10 ** -5)) * particle.diameter * np.array(particle.velocity + windVelocity) / particle.mass
 
 def electricFieldAccel(particle, summedElectricField):
     return summedElectricField * particle.charge / particle.mass
+
+def cubeSort(cubes):
+    return sorted(cubes, key = lambda particle : particle.position[2])
 
 """
 def windAccel(particle, windVelocity): # worry about this later
@@ -79,28 +77,60 @@ def windAccel(particle, windVelocity): # worry about this later
 """
 
 cubes = []
-windVelocity = [0, 0, 0]
+windVelocity = np.array([0, 0, 0])
 
 for x in range(1, 301, 1): # 3 meters radius, 7 meters tall area
-    for z in range(1, 701, 1):
+    for z in range(1, 180, 1):
         position = [x / 100, 0, z /100]
         # 10 micrometers diameter variant
-        cubes.append(Particle(10 * (10 ** -6), 4.89 * 10 ** -8 * (1 / 100) ** 3, position))
+        cubes.append(Particle(10 * (10 ** -6), 4.89 * 10 ** -8, position))
         # 2.5 micrometers diameter variant
-        cubes.append(Particle(2.5 * (10 ** -6), 2.05 * 10 ** -8 * (1 / 100) ** 3, position))
-    print(x)
+        cubes.append(Particle(2.5 * (10 ** -6), 3.35 * 10 ** -8, position))
 
-Tower(1.9 * 10 ** -7, 7)
+totalMass = 0
+for cube in cubes:
+    totalMass += cube.mass
 
-maxTime = 3600 # 3600 seconds
+tower = Tower(1.9 * 10 ** -7, 7)
+
+maxTime = 20 * 60
 timeStep = 0.01 
 currentTime = 0
 while (currentTime <= maxTime):
+    cubes = cubeSort(cubes)
+    capturedCubes = []
+    below = 0
+    above = 0
+    for cube in cubes: # ignoring charge overlaps, calculates density as though it were alone on a layer, ignoring pushes!
+        charge = cube.charge * cube.numParticles
+        above += charge / 0.01 / 3 / 2 / (8.854 * 10 ** -12)
     print(currentTime)
-    threads = []
-    for analysisCube in cubes:
-        pass
+    for cube in cubes:
+        charge = cube.charge * cube.numParticles
+        below += charge / 0.01 / 3 / 2 / (8.854 * 10 ** -12)
+        above -= charge / 0.01 / 3 / 2 / (8.854 * 10 ** -12)
+        electricField = tower.electricField(cube) + [0, 0, above] + [0, 0, -1 * below]
+        accel = electricFieldAccel(cube, electricField) + dragAccel(cube, windVelocity) + buoyantAccel(cube) + hydroStaticPressureAccel(cube) + gravityAccel()
+        velocity = cube.velocity
+        position = cube.position + 0.5 * accel * timeStep ** 2 + velocity * timeStep
+        if (position[0] < 0):
+            tower.capture(cube)
+            capturedCubes.append(cube)
+        elif (position[2] < 0):
+            position[2] = 0
+        elif (position[2] > 7):
+            position[2] = 7
+        cube.velocity = velocity + accel * timeStep
+        cube.position = position
+    print(currentTime)
+    for cube in capturedCubes:
+        cubes.remove(cube)
     currentTime += timeStep
+
+print(tower.captureParticles)
+print(tower.kgRemoved)
+
+print(sum(tower.kgRemoved) / totalMass)
 
 """
 randZ = -1
