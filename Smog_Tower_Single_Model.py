@@ -48,7 +48,7 @@ class Tower: # approximate the tower as a line charge
         for i in range(0, 2, 1):
             if (self.captureParticles[i][0] == particle.diameter):
                 self.captureParticles[i][1] += particle.numParticles
-                self.kgRemoved[i] += particle.mass
+                self.kgRemoved[i] += particle.mass 
                 break
 
 # vector fields
@@ -76,7 +76,7 @@ def cubeSort(cubes):
 
 cubes = []
 
-for x in range(1, 101, 1): # 4 meters radius, 4 meters tall area
+for x in range(1, 101, 1): # 1 meters radius, 1.25 meters tall area
     for z in range(0, 126, 1):
         position = [x / 100, 0, z / 100]
         # 10 micrometers diameter variant
